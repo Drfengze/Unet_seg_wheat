@@ -70,19 +70,13 @@ checkpoint_dir = os.path.dirname(checkpoint_path)
 FOLDER = SOURCE  # + '/20190830' ## update this for data period
 TRAINING_BASE = 'training_patches'
 EVAL_BASE = 'eval_patches'
-#
-# # Specify inputs (bands) to the model and the response variable.
-if SOURCE == 's2-data':
-    opticalBands = ['B2', 'B3', 'B4', 'B8', 'B11', 'B12']
-else:
-    opticalBands = ['blue', 'green', 'red',
-                    'nir', 'swir1', 'swir2', 'ndvi', 'nirv']
-thermalBands = []
-BANDS = opticalBands + thermalBands
+BANDS = ['blue', 'green', 'red', 'nir', 'swir1', 'swir2',
+         'ndvi', 'nirv', 'blue_1', 'green_1', 'red_1',
+         'nir_1', 'swir1_1', 'swir2_1', 'ndvi_1', 'nirv_1']
 RESPONSE = 'cropland'
 FEATURES = BANDS + [RESPONSE]
-NCLASS = 3
-class_names = ['Others', 'Corn', 'Soybean']
+NCLASS = 2
+class_names = ['Others', 'Wheat']
 
 # # Specify the size and shape of patches expected by the model.
 KERNEL_SIZE = 256
@@ -172,7 +166,8 @@ with strat.scope():
         Ncl = tf.cast(tf.shape(y_true)[-1], 'float32')
         return Ncl-T
 
-    # Focal Tversky Loss (to customize focus on easier or harder examples) defined as Custom Loss Function (alpha=beta=0.5 => Dice Loss)
+    # Focal Tversky Loss (to customize focus on easier or harder examples)
+    # defined as Custom Loss Function (alpha=beta=0.5 => Dice Loss)
     def focal_tversky_loss(y_true, y_pred, gamma=1.5):
         tv = tversky_loss(y_true, y_pred)
         return tf.math.pow(tv, gamma)
@@ -183,7 +178,7 @@ with strat.scope():
     print(m.summary())
     m.compile(
         optimizer=optimizers.get(OPTIMIZER),
-        loss=focal_tversky_loss,
+        loss=sm.losses.DiceLoss(class_weights=[0.2, 0.8]),
         # loss = losses.get(LOSS),
         metrics=[metric for metric in METRICS])
 
